@@ -7,14 +7,24 @@ import Data.Default (def)
 import Control.Monad.Writer (Writer, runWriter)
 
 spec :: Spec
-spec = describe "Runtime evaluation spec" $ do
+spec = describe "Interpreter" $ do
   popSpec
-  truthSpec
+  emitSpec
 
-type TestInterpreter = Interpreter (Writer [Value]) Value
+type TestInterpreter a = Interpreter (Writer [Value]) a
 
-runTestInterpreter :: TestInterpreter -> Program -> ForthState -> (InterpreterResult Value, [Value])
+runTestInterpreter :: TestInterpreter a -> Program -> ForthState -> (InterpreterResult a, [Value])
 runTestInterpreter i p s = runWriter $ evaluateInterpreter i p s
+
+emitSpec :: Spec
+emitSpec =
+  describe "emit" $
+      let
+        emitOne =
+          emit $ Number 1
+        (_, emitted) = runTestInterpreter emitOne [] def
+      in it "emit is an interpreter and emits something" $
+        emitted `shouldBe` [Number 1]
 
 popSpec :: Spec
 popSpec =
@@ -33,7 +43,3 @@ popSpec =
           let
             (result, _) = runTestInterpreter pop [] def
           in result `shouldBe` Left StackUnderflow
-
-
-truthSpec :: Spec
-truthSpec = describe "The truth" $ it "true is true" $ True `shouldBe` True
