@@ -2,8 +2,8 @@
 
 module Horth  where
 
-import           Control.Exception    (Exception, catch, throw)
-import           Control.Monad.Except (ExceptT, runExceptT)
+import           Control.Exception    (Exception, catch)
+import           Control.Monad.Except (ExceptT, runExceptT, throwError)
 import           Control.Monad.State  (StateT, get, put, runStateT)
 import           Control.Monad.Writer (MonadWriter, tell)
 import           Data.Default         (Default, def)
@@ -66,7 +66,7 @@ pop :: Interpreter m Value
 pop = do
   state <- get
   case stack state of
-    [] -> throw StackUnderflow
+    [] -> throwError StackUnderflow
     (top:rest) -> do
       put $ state { stack = rest }
       return top

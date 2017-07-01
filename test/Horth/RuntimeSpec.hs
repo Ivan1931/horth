@@ -29,6 +29,11 @@ popSpec =
           result `shouldBe` Right (Number 1, def)
         it "writes nothing" $
           emitted `shouldBe` []
+        it "returns a stack underflow when there is nothing on the stack" $
+          let
+            (result, _) = runTestInterpreter pop [] def
+          in result `shouldBe` Left StackUnderflow
+
 
 truthSpec :: Spec
 truthSpec = describe "The truth" $ it "true is true" $ True `shouldBe` True
