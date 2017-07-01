@@ -1,16 +1,11 @@
-{-# LANGUAGE OverloadedLists #-}
-{-# LANGUAGE RankNTypes      #-}
+{-# LANGUAGE OverloadedLists, RankNTypes, FlexibleContexts, FlexibleInstances, UndecidableInstances #-}
 
-module Horth (
-  repl,
-  evaluateForth,
-  Value(..),
-  Forth(..)
-) where
+module Horth  where
 
 import           Control.Exception    (Exception, catch, throw)
 import           Control.Monad.Except (ExceptT, runExceptT)
 import           Control.Monad.State  (StateT, get, put, runStateT)
+import           Control.Monad.Writer (MonadWriter, tell)
 import           Data.Default         (Default, def)
 import           Data.Map             (Map, fromList)
 
@@ -31,10 +26,6 @@ type StackOp = Stack -> Stack -- for now represent stack as function on top of s
 type Constants = Map String Value
 type Variables = Map String Value
 
-class (Monad m) => FIO m where
-  emit :: Value -> m ()
-  consume :: m Value
-
 data ForthState = ForthState {
   constants :: Constants,
   variables :: Variables,
@@ -50,12 +41,16 @@ instance Default ForthState where
     program = []
   }
 
-data ForthError = ParseError | StackUnderflow | Stackoverflow
+data ForthError = ParseError | StackUnderflow | Stackoverflow | NoInputMode
                 deriving (Show, Eq)
 
 instance Exception ForthError
 
-type Runtime m a = (FIO m) => StateT ForthState (ExceptT ForthError m) a
+type Interpreter m a = (FIO m) => StateT ForthState (ExceptT ForthError m) a
+
+class (Monad m) => FIO m where
+  emit :: Value -> m ()
+  consume :: m Value
 
 instance FIO IO where
   emit = print . show
@@ -63,15 +58,11 @@ instance FIO IO where
     line <- getLine
     return (read line :: Value)
 
-testState =
-  ForthState {
-    constants = [],
-    variables = [],
-    stack = [Number 1],
-    program = []
-  }
+instance (Monad m, MonadWriter [Value] m) => FIO m where
+  emit x = tell [x]
+  consume = undefined
 
-pop :: Runtime m Value
+pop :: Interpreter m Value
 pop = do
   state <- get
   case stack state of
@@ -80,11 +71,16 @@ pop = do
       put $ state { stack = rest }
       return top
 
-interpreter :: Runtime m Value
+type InterpreterResult a = Either ForthError (a, ForthState)
+
+evaluateInterpreter :: FIO m => Interpreter m a -> Program -> ForthState -> m (InterpreterResult a)
+evaluateInterpreter i prog state = runExceptT (runStateT i state)
+
+interpreter :: Interpreter m Value
 interpreter = pop
 
-evaluateForth :: FIO m => Program -> m (Either ForthError (Value, ForthState))
-evaluateForth program = runExceptT (runStateT interpreter def { stack = [Number 1] })
+evaluateForth :: FIO m => Program -> ForthState -> m (InterpreterResult Value)
+evaluateForth = evaluateInterpreter interpreter
 
 repl :: IO ()
 repl = undefined
