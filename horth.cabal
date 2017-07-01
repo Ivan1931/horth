@@ -2,13 +2,13 @@ name:                horth
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/horth#readme
+homepage:            https://github.com/Ivan1931/horth#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
-category:            Web
+author:              Jonah Hooper
+maintainer:          jonah.graham.hooper@gmail.com
+copyright:           2017 Jonah Hooper
+category:            Language
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
