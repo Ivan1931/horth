@@ -41,7 +41,10 @@ instance Default ForthState where
     program = []
   }
 
-data ForthError = ParseError | StackUnderflow | Stackoverflow | NoInputMode
+data ForthError = ParseError
+                | StackUnderflow  -- Try to pop something off an empty stack
+                | Stackoverflow  -- We have exceeded the stack size (impossible since this is haskell)
+                | EmptyInstructionStack -- We don't have any instructions left to do
                 deriving (Show, Eq)
 
 instance Exception ForthError
@@ -71,15 +74,36 @@ pop = do
       put $ state { stack = rest }
       return top
 
+pop2 :: Interpreter m (Value, Value)
+pop2 = do
+  a <- pop
+  b <- pop
+  return (a, b)
+
+hasInstruction :: Interpreter m Bool
+hasInstruction = do
+  state <- get
+  return $ case program state of
+    [] -> False
+    _  -> True
+
+
+next :: Interpreter m Forth
+next = do
+  state <- get
+  case program state of
+    [] -> throwError EmptyInstructionStack
+    (x:xs) -> return x
+
 type InterpreterResult a = Either ForthError (a, ForthState)
 
-evaluateInterpreter :: FIO m => Interpreter m a -> Program -> ForthState -> m (InterpreterResult a)
-evaluateInterpreter i prog state = runExceptT (runStateT i state)
+evaluateInterpreter :: FIO m => Interpreter m a -> ForthState -> m (InterpreterResult a)
+evaluateInterpreter i state = runExceptT (runStateT i state)
 
 interpreter :: Interpreter m Value
 interpreter = pop
 
-evaluateForth :: FIO m => Program -> ForthState -> m (InterpreterResult Value)
+evaluateForth :: FIO m => ForthState -> m (InterpreterResult Value)
 evaluateForth = evaluateInterpreter interpreter
 
 repl :: IO ()

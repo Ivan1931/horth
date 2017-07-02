@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes, FlexibleContexts #-}
-module Horth.RuntimeSpec where
+module Horth.InterpreterSpec where
 
 import Test.Hspec
 import Horth
@@ -13,8 +13,8 @@ spec = describe "Interpreter" $ do
 
 type TestInterpreter a = Interpreter (Writer [Value]) a
 
-runTestInterpreter :: TestInterpreter a -> Program -> ForthState -> (InterpreterResult a, [Value])
-runTestInterpreter i p s = runWriter $ evaluateInterpreter i p s
+runTestInterpreter :: TestInterpreter a -> ForthState -> (InterpreterResult a, [Value])
+runTestInterpreter i s = runWriter $ evaluateInterpreter i s
 
 emitSpec :: Spec
 emitSpec =
@@ -22,9 +22,24 @@ emitSpec =
       let
         emitOne =
           emit $ Number 1
-        (_, emitted) = runTestInterpreter emitOne [] def
+        (_, emitted) = runTestInterpreter emitOne def
       in it "emit is an interpreter and emits something" $
         emitted `shouldBe` [Number 1]
+
+instructionSpec :: Spec
+instructionSpec =
+  describe "hasInstruction" $
+    let
+      testProgram = def { program = [Word "hello"] }
+      testProgramEmpty = def
+      (result, _) = runTestInterpreter hasInstruction testProgram
+      (resultE, _) = runTestInterpreter hasInstruction testProgramEmpty
+    in do
+      it "correctly checks that a program is non-empty" $
+        result `shouldBe` Right (True, testProgram)
+      it "correctly checks that a program is empty" $
+        result `shouldBe` Right (False, def)
+
 
 popSpec :: Spec
 popSpec =
@@ -33,7 +48,7 @@ popSpec =
   in
     describe "pop" $
       let
-        (result, emitted) = runTestInterpreter pop [] testState
+        (result, emitted) = runTestInterpreter pop testState
       in do
         it "pops the first element off the stack" $
           result `shouldBe` Right (Number 1, def)
@@ -41,5 +56,5 @@ popSpec =
           emitted `shouldBe` []
         it "returns a stack underflow when there is nothing on the stack" $
           let
-            (result, _) = runTestInterpreter pop [] def
+            (result, _) = runTestInterpreter pop def
           in result `shouldBe` Left StackUnderflow
