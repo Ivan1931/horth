@@ -10,6 +10,7 @@ spec :: Spec
 spec = describe "Interpreter" $ do
   popSpec
   emitSpec
+  instructionSpec
 
 type TestInterpreter a = Interpreter (Writer [Value]) a
 
@@ -30,15 +31,22 @@ instructionSpec :: Spec
 instructionSpec =
   describe "hasInstruction" $
     let
-      testProgram = def { program = [Word "hello"] }
+      testWord = Word "hello"
+      testProgram = def { program = [testWord] }
       testProgramEmpty = def
       (result, _) = runTestInterpreter hasInstruction testProgram
       (resultE, _) = runTestInterpreter hasInstruction testProgramEmpty
+      (resultN, _) = runTestInterpreter nextInstruction testProgram
+      (resultNextPopped, _) = runTestInterpreter popInstructionStack testProgram
     in do
       it "correctly checks that a program is non-empty" $
         result `shouldBe` Right (True, testProgram)
       it "correctly checks that a program is empty" $
-        result `shouldBe` Right (False, def)
+        resultE `shouldBe` Right (False, testProgramEmpty)
+      it "correctly lifts the next test program off the stack" $
+        resultN `shouldBe` Right (testWord, testProgram)
+      it "correctly pops the instruction stack and returns the popped instruction" $
+        resultNextPopped `shouldBe` Right (testWord, def)
 
 
 popSpec :: Spec

@@ -87,13 +87,21 @@ hasInstruction = do
     [] -> False
     _  -> True
 
-
-next :: Interpreter m Forth
-next = do
+nextInstruction :: Interpreter m Forth
+nextInstruction = do
   state <- get
   case program state of
     [] -> throwError EmptyInstructionStack
     (x:xs) -> return x
+
+popInstructionStack :: Interpreter m Forth
+popInstructionStack = do
+  state <- get
+  case program state of
+    [] -> throwError EmptyInstructionStack
+    (x: xs) -> do
+      put state { program = [] }
+      return x
 
 type InterpreterResult a = Either ForthError (a, ForthState)
 
